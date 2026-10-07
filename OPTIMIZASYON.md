@@ -27,3 +27,18 @@ Blok havuzlama, hareketli UI süsleri için ayrı Canvas, karoların karelere ya
 - Android: **App Bundle (AAB)**, texture sıkıştırma: **ASTC**.
 - Kullanılmayan built-in paketleri kaldırın (ör. Physics, AI, Terrain, Video, VR/XR, Timeline). Oyun bunları kullanmıyor.
 - `BlockRiseLevels.json` düzenlemeyi kolaylaştırmak için girintili bırakıldı. Küçültmek build'e sıkıştırılmış hâlde yalnızca ~10 KB kazandırır.
+
+## Açılıştaki kasma (2. tur)
+Telefonda oyun ilk açıldığında menünün ilk birkaç saniye takılmasının nedenleri ve çözümleri:
+
+| Neden | Etki | Çözüm |
+|---|---|---|
+| 161 blok karosu ana thread'de, kare başına 2 tane üretiliyordu | Açılıştan sonraki ~80 kare boyunca her karede birkaç ms hesap ve toplam ~22 MB geçici dizi. Bu diziler GC duraklamalarına yol açıyordu. | Piksel hesabı artık **arka plan thread'inde**, yeniden kullanılan 6 tamponla yapılıyor. Ana thread kare başına en fazla ~1.5 ms ile yalnızca dokuları yüklüyor. Hesap kodu thread-güvenli hâle getirildi (`TileShape`). Oyun sırasında eksik bir karo istenirse tek seferlik tamponla üretiliyor, çöp oluşmuyor. WebGL'de thread olmadığı için orada zaman bütçeli eski yöntem kullanılıyor. |
+| Sesler açılışta ana thread'de çözülüyordu (`preloadAudioData` açık, `loadInBackground` kapalı) | 23 Vorbis sesi PCM'e açılırken her biri bir karede 10–40 ms sürebiliyordu. 1. turda eklenen ses ön yüklemesi bu ayar yüzünden açılışı ağırlaştırmış olabilir. | Tüm seslerde **Load In Background** açıldı. Çözme artık arka planda yapılıyor. |
+| Android titreşim servisi ilk titreşimde hazırlanıyordu (JNI) | İlk dokunuşta veya ilk blok sürüklemesinde 10–30 ms takılma. | `Haptics.Prewarm()` ile açılışta hazırlanıyor. |
+| Shader'lar ilk çizimde GPU sürücüsünde derleniyordu | İlk görünen sprite/UI/yazıda takılma. | Açılışta `Shader.WarmupAllShaders()` çağrılıyor. |
+
+Proje ayarlarında ayrıca şunları öneriyorum:
+- **Player → Other Settings → Use incremental GC:** açık.
+- **Optimized Frame Pacing:** açık.
+- Gerçek ölçüm için Development Build + Autoconnect Profiler ile telefonda ilk 5 saniyeyi kaydedin.
