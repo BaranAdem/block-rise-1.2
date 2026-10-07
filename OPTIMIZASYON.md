@@ -42,3 +42,17 @@ Proje ayarlarında ayrıca şunları öneriyorum:
 - **Player → Other Settings → Use incremental GC:** açık.
 - **Optimized Frame Pacing:** açık.
 - Gerçek ölçüm için Development Build + Autoconnect Profiler ile telefonda ilk 5 saniyeyi kaydedin.
+
+## Yükleme ekranı (3. tur)
+Açılıştaki tüm ağır hazırlıklar artık bir yükleme ekranının arkasında yapılıyor. Menü açıldığında hiçbir şey ilk kez hazırlanmıyor.
+
+- **Ne görünüyor:** Oyunun canlı arka planı ve yıldız tozu üstünde "BLOCK RISE" logosu, oyunun blok renklerinde ilerledikçe yanan 5 blok ve ince bir ilerleme çubuğu. Bitince ekran yumuşakça kayboluyor (`UI/LoadingScreen.cs`).
+- **Sırası (`GameRoot.Boot`):**
+  1. Arka plan ve yükleme ekranı (ilk kare). Sesler ve blok karoları hemen arka planda hazırlanmaya başlıyor.
+  2. Efektler, tahta, oyun kontrolcüsü ve tüm arayüz ekranları.
+  3. Bölüm haritası önceden kuruluyor. "Levels" ekranı ilk açıldığında takılmıyor.
+  4. 161 blok karosunun ve 23 sesin bitmesi bekleniyor (güvenlik sınırı en fazla 15 sn).
+  5. Font dokusu: arayüzdeki tüm yazıların karakterleri önceden işleniyor.
+  6. Titreşim servisi, shader'lar ve bir kez çöp toplama (GC).
+  7. Menü ya da yarım kalan oyun açılıyor, yükleme ekranı kayboluyor.
+- Her adımdan sonra bir kare bekleniyor, böylece yükleme ekranı donmuyor ve ilerliyor.
